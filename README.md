@@ -16,4 +16,4 @@ If you want to build it yourself:
 5. Build or Run.
 
 ## Credits
-This app and even its icon was made using Gemini 3 Pro.
+This app and even its icon was made using Gemini 3 Pro, so all credits to them, and use it at your own risk.
