@@ -4,24 +4,37 @@ import AVFoundation
 internal import Combine
 
 // MARK: - CoreAudio Engine
-// (Logic remains unchanged from previous version)
 class AudioEngine: ObservableObject {
     @Published var isRunning = false
     @Published var devices: [AudioDevice] = []
-    @Published var selectedDeviceID: AudioDeviceID?
+    @Published var selectedDeviceUID: String? // We store UID for persistence
     
     private var ioProcID: AudioDeviceIOProcID?
+    private var currentDeviceID: AudioDeviceID?
     
     struct AudioDevice: Hashable, Identifiable {
         let id: AudioDeviceID
+        let uid: String
         let name: String
     }
     
     init() {
+        // Load saved device UID from UserDefaults
+        self.selectedDeviceUID = UserDefaults.standard.string(forKey: "LastSelectedDeviceUID")
+        
         refreshDevices()
+        setupDeviceListener()
     }
     
+    // MARK: - Device Management
+    
     func refreshDevices() {
+        DispatchQueue.main.async {
+            self._refreshDevicesInternal()
+        }
+    }
+    
+    private func _refreshDevicesInternal() {
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -39,6 +52,7 @@ class AudioEngine: ObservableObject {
         var newDevices: [AudioDevice] = []
         
         for id in deviceIDs {
+            // Check for output streams
             var outputStreamAddress = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyStreams,
                 mScope: kAudioObjectPropertyScopeOutput,
@@ -48,24 +62,66 @@ class AudioEngine: ObservableObject {
             AudioObjectGetPropertyDataSize(id, &outputStreamAddress, 0, nil, &streamSize)
             
             if streamSize > 0 {
-                var nameAddress = AudioObjectPropertyAddress(
-                    mSelector: kAudioObjectPropertyName,
-                    mScope: kAudioObjectPropertyScopeGlobal,
-                    mElement: kAudioObjectPropertyElementMain
-                )
-                var name: CFString = "" as CFString
-                var nameSize = UInt32(MemoryLayout<CFString>.size)
-                AudioObjectGetPropertyData(id, &nameAddress, 0, nil, &nameSize, &name)
+                // Get Name
+                var name = getDeviceStringProperty(id: id, selector: kAudioObjectPropertyName)
+                // Get UID (Persistent ID)
+                var uid = getDeviceStringProperty(id: id, selector: kAudioDevicePropertyDeviceUID)
                 
-                newDevices.append(AudioDevice(id: id, name: name as String))
+                newDevices.append(AudioDevice(id: id, uid: uid, name: name))
             }
         }
         
         self.devices = newDevices
-        if selectedDeviceID == nil, let first = newDevices.first {
-            selectedDeviceID = first.id
+        
+        // Handle Disconnection Logic
+        if isRunning, let currentID = currentDeviceID {
+            // Check if our currently running device still exists in the new list
+            let deviceStillExists = newDevices.contains { $0.id == currentID }
+            if !deviceStillExists {
+                print("Active device disconnected. Stopping.")
+                stop()
+            }
+        }
+        
+        // Auto-select if we have a saved UID and nothing is selected
+        if let savedUID = selectedDeviceUID, let match = newDevices.first(where: { $0.uid == savedUID }) {
+            // We found our saved device
+        } else if selectedDeviceUID == nil, let first = newDevices.first {
+            selectedDeviceUID = first.uid
         }
     }
+    
+    private func getDeviceStringProperty(id: AudioDeviceID, selector: AudioObjectPropertySelector) -> String {
+        var address = AudioObjectPropertyAddress(
+            mSelector: selector,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var stringRef: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        let status = AudioObjectGetPropertyData(id, &address, 0, nil, &size, &stringRef)
+        if status == noErr {
+            return stringRef as String
+        }
+        return "Unknown"
+    }
+    
+    // MARK: - Hardware Listener
+    
+    private func setupDeviceListener() {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        // Pass 'self' as client data so the C callback can call our Swift method
+        let selfPointer = Unmanaged.passUnretained(self).toOpaque()
+        
+        AudioObjectAddPropertyListener(AudioObjectID(kAudioObjectSystemObject), &propertyAddress, hardwareListenerCallback, selfPointer)
+    }
+    
+    // MARK: - Playback Control
     
     private let renderCallback: AudioDeviceIOProc = { (inDevice, inNow, inInputData, inInputTime, outOutputData, inOutputTime, inClientData) -> OSStatus in
         let bufferList = UnsafeMutableAudioBufferListPointer(outOutputData)
@@ -76,30 +132,54 @@ class AudioEngine: ObservableObject {
     }
     
     func start() {
-        guard let deviceID = selectedDeviceID else { return }
+        guard let uid = selectedDeviceUID,
+              let device = devices.first(where: { $0.uid == uid }) else { return }
+        
         if isRunning { return }
         
+        let deviceID = device.id
+        
         let status = AudioDeviceCreateIOProcID(deviceID, renderCallback, nil, &ioProcID)
-        if status != noErr { return }
+        if status != noErr { print("Error creating IOProc: \(status)"); return }
         
         let startStatus = AudioDeviceStart(deviceID, ioProcID)
-        if startStatus != noErr { return }
+        if startStatus != noErr { print("Error starting: \(startStatus)"); return }
         
+        currentDeviceID = deviceID
         isRunning = true
+        
+        // Save preference
+        UserDefaults.standard.set(uid, forKey: "LastSelectedDeviceUID")
     }
     
     func stop() {
-        guard let deviceID = selectedDeviceID, let procID = ioProcID else { return }
+        guard let deviceID = currentDeviceID, let procID = ioProcID else { return }
+        
         AudioDeviceStop(deviceID, procID)
         AudioDeviceDestroyIOProcID(deviceID, procID)
+        
         ioProcID = nil
+        currentDeviceID = nil
         isRunning = false
     }
 }
 
-// MARK: - Compact SwiftUI Interface
+// C-Function for Hardware Listener
+func hardwareListenerCallback(objectID: AudioObjectID,
+                              numberAddresses: UInt32,
+                              addresses: UnsafePointer<AudioObjectPropertyAddress>,
+                              clientData: UnsafeMutableRawPointer?) -> OSStatus {
+    if let clientData = clientData {
+        let engine = Unmanaged<AudioEngine>.fromOpaque(clientData).takeUnretainedValue()
+        engine.refreshDevices()
+    }
+    return noErr
+}
+
+// MARK: - SwiftUI Interface
 struct ContentView: View {
-    @StateObject var engine = AudioEngine()
+    // We use EnvironmentObject so we share the same engine instance across window re-opens
+    @EnvironmentObject var engine: AudioEngine
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -108,19 +188,20 @@ struct ContentView: View {
             HStack {
                 Image(systemName: "waveform.circle.fill")
                     .foregroundColor(engine.isRunning ? .green : .secondary)
+                    .font(.title2)
                 Text("Audio Keep Alive")
                     .font(.headline)
             }
             .padding(.bottom, 4)
             
             // Device Selector
-            Picker("Device", selection: $engine.selectedDeviceID) {
+            Picker("Device", selection: $engine.selectedDeviceUID) {
                 ForEach(engine.devices) { device in
-                    Text(device.name).tag(device.id as AudioDeviceID?)
+                    Text(device.name).tag(device.uid as String?)
                 }
             }
-            .labelsHidden() // Hide the label to save space, the context is clear
-            .frame(width: 220) // Fixed width for the dropdown to prevent window jumping
+            .labelsHidden()
+            .frame(width: 220)
             .disabled(engine.isRunning)
             
             // Controls
@@ -129,7 +210,7 @@ struct ContentView: View {
                     Text("Start")
                         .frame(maxWidth: .infinity)
                 }
-                .disabled(engine.isRunning || engine.selectedDeviceID == nil)
+                .disabled(engine.isRunning || engine.selectedDeviceUID == nil)
                 
                 Button(action: { engine.stop() }) {
                     Text("Stop")
@@ -139,27 +220,29 @@ struct ContentView: View {
             }
             
             // Footer Status
-            Text(engine.isRunning ? "Status: Active (Sending Silence)" : "Status: Inactive")
+            Text(engine.isRunning ? "Status: Active" : "Status: Inactive")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 4)
         }
-        .padding(16) // Reasonable padding around the edges
-        .fixedSize() // Forces the view to wrap its content tightly
+        .padding(16)
+        .fixedSize()
     }
 }
 
 // MARK: - App Entry Point
 @main
 struct AudioKeepAliveApp: App {
+    // Create the engine ONCE here. It lives as long as the app is running.
+    @StateObject var engine = AudioEngine()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(engine) // Pass it down
         }
-        // This removes the standard window title bar for a cleaner, smaller utility look
         .windowStyle(.hiddenTitleBar)
-        // This ensures the window snaps to the size of the ContentView (macOS 13+)
         .windowResizability(.contentSize)
     }
 }
