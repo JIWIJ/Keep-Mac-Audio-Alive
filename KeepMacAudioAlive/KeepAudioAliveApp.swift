@@ -52,24 +52,24 @@ class AudioEngine: ObservableObject {
         var newDevices: [AudioDevice] = []
         
         for id in deviceIDs {
-            // Check for output streams
-            var outputStreamAddress = AudioObjectPropertyAddress(
-                mSelector: kAudioDevicePropertyStreams,
-                mScope: kAudioObjectPropertyScopeOutput,
-                mElement: kAudioObjectPropertyElementMain
-            )
-            var streamSize: UInt32 = 0
-            AudioObjectGetPropertyDataSize(id, &outputStreamAddress, 0, nil, &streamSize)
-            
-            if streamSize > 0 {
-                // Get Name
-                var name = getDeviceStringProperty(id: id, selector: kAudioObjectPropertyName)
-                // Get UID (Persistent ID)
-                var uid = getDeviceStringProperty(id: id, selector: kAudioDevicePropertyDeviceUID)
-                
-                newDevices.append(AudioDevice(id: id, uid: uid, name: name))
-            }
-        }
+                    // Check for output streams
+                    var outputStreamAddress = AudioObjectPropertyAddress(
+                        mSelector: kAudioDevicePropertyStreams,
+                        mScope: kAudioObjectPropertyScopeOutput,
+                        mElement: kAudioObjectPropertyElementMain
+                    )
+                    var streamSize: UInt32 = 0
+                    AudioObjectGetPropertyDataSize(id, &outputStreamAddress, 0, nil, &streamSize)
+                    
+                    if streamSize > 0 {
+                        // Get Name (Changed 'var' to 'let')
+                        let name = getDeviceStringProperty(id: id, selector: kAudioObjectPropertyName)
+                        // Get UID (Changed 'var' to 'let')
+                        let uid = getDeviceStringProperty(id: id, selector: kAudioDevicePropertyDeviceUID)
+                        
+                        newDevices.append(AudioDevice(id: id, uid: uid, name: name))
+                    }
+                }
         
         self.devices = newDevices
         
@@ -92,20 +92,26 @@ class AudioEngine: ObservableObject {
     }
     
     private func getDeviceStringProperty(id: AudioDeviceID, selector: AudioObjectPropertySelector) -> String {
-        var address = AudioObjectPropertyAddress(
-            mSelector: selector,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var stringRef: CFString = "" as CFString
-        var size = UInt32(MemoryLayout<CFString>.size)
-        let status = AudioObjectGetPropertyData(id, &address, 0, nil, &size, &stringRef)
-        if status == noErr {
-            return stringRef as String
+            var address = AudioObjectPropertyAddress(
+                mSelector: selector,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            
+            // 1. Use Unmanaged<CFString>? to handle the raw pointer safely
+            var stringRef: Unmanaged<CFString>?
+            var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+            
+            let status = AudioObjectGetPropertyData(id, &address, 0, nil, &size, &stringRef)
+            
+            if status == noErr, let existingRef = stringRef {
+                // 2. Take ownership of the retained value (CoreAudio gives us a +1 retain count)
+                // This converts it to a standard Swift String and releases the CF reference correctly.
+                return existingRef.takeRetainedValue() as String
+            }
+            
+            return "Unknown"
         }
-        return "Unknown"
-    }
-    
     // MARK: - Hardware Listener
     
     private func setupDeviceListener() {
