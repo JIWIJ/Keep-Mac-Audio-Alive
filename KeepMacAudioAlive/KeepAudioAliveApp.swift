@@ -202,10 +202,12 @@ struct ContentView: View {
             Image(systemName: "waveform.circle.fill")
                 .foregroundColor(engine.isRunning ? .green : .secondary)
                 .font(.title2)
+            
             Button(action: {engine.isRunning ? engine.stop() : engine.start() } ) {
                 Text (engine.isRunning ? "Stop" : "Start")
                     .frame (width: 50)
             }
+            
             Picker("Device", selection: $engine.selectedDeviceUID) {
                 ForEach(engine.devices) { device in
                     Text (device.name).tag(device.uid as String?)
@@ -227,7 +229,7 @@ struct AudioKeepAliveApp: App {
     @StateObject var engine = AudioEngine()
     
     var body: some Scene {
-        WindowGroup("Keep Mac Audio Alive") { // Added Window Title
+        WindowGroup {
             ContentView()
                 .environmentObject(engine) // Pass it down
         }
