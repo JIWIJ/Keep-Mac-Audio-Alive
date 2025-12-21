@@ -92,8 +92,6 @@ class AudioEngine: ObservableObject {
             selectedDeviceUID = first.uid
         }
         
-        start()
-        
     }
     
     private func getDeviceStringProperty(id: AudioDeviceID, selector: AudioObjectPropertySelector) -> String {
@@ -200,49 +198,43 @@ struct ContentView: View {
     @EnvironmentObject var engine: AudioEngine
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 5) { // Aligns children to the left
+            // Top Label
+            Text("Selected Audio Output:")
+                .font(.headline)
+                .padding(.top, 0)
             
-            // Header
-            HStack {
+            // Controls Row
+            HStack(alignment: .center, spacing: 12) {
+                
+                // 1. Device Selector Dropdown
+                Picker("Device", selection: $engine.selectedDeviceUID) {
+                    ForEach(engine.devices) { device in
+                        Text(device.name).tag(device.uid as String?)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 200)
+                .disabled(engine.isRunning) // Disable changing device while running
+                
+                // 2. Start/Stop Button
+                Button(action: {
+                    if engine.isRunning {
+                        engine.stop()
+                    } else {
+                        engine.start()
+                    }
+                }) {
+                    Text(engine.isRunning ? "Stop" : "Start")
+                        .frame(width: 50) // Fixed width to prevent jumping
+                }
+                .disabled(engine.selectedDeviceUID == nil)
+                
+                // 3. Icon
                 Image(systemName: "waveform.circle.fill")
                     .foregroundColor(engine.isRunning ? .green : .secondary)
                     .font(.title2)
-                Text("Audio Keep Alive")
-                    .font(.headline)
             }
-            .padding(.bottom, 4)
-            
-            // Device Selector
-            Picker("Device", selection: $engine.selectedDeviceUID) {
-                ForEach(engine.devices) { device in
-                    Text(device.name).tag(device.uid as String?)
-                }
-            }
-            .labelsHidden()
-            .frame(width: 220)
-            .disabled(engine.isRunning)
-            
-            // Controls
-            HStack {
-                Button(action: { engine.start() }) {
-                    Text("Start")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(engine.isRunning || engine.selectedDeviceUID == nil)
-                
-                Button(action: { engine.stop() }) {
-                    Text("Stop & Change")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(!engine.isRunning)
-            }
-            
-            // Footer Status
-            Text(engine.isRunning ? "Status: Active" : "Status: Inactive")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 4)
         }
         .padding(16)
         .fixedSize()
@@ -256,11 +248,11 @@ struct AudioKeepAliveApp: App {
     @StateObject var engine = AudioEngine()
     
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("Keep Mac Audio Alive") { // Added Window Title
             ContentView()
                 .environmentObject(engine) // Pass it down
         }
-        .windowStyle(.hiddenTitleBar)
+        // Removed .windowStyle(.hiddenTitleBar) so the title is visible
         .windowResizability(.contentSize)
     }
 }
