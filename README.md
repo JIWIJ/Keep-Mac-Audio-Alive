@@ -22,7 +22,7 @@ Keep Mac audio alive to prevent delays or pops with some DACs.
   The selected device will be remembered on launch and the app will send silence right away the moment it is connected. It will always send silence on launch if the last selected device is available. If it is not, it will not send silence until another device is selected and Start is clicked or the last selected device is reconnected.
   Note that when the logo is filled in, the app is sending silence and when it is empty, it is not. 
 
-6. To launch at Login, add this app to Login Items under Settings > General > Login Items & Extensions > Open at Login. As stated, when the last selected device is connected it will send silence right away.  
+6. To launch at login, add this app to Login Items under Settings > General > Login Items & Extensions > Open at Login. As stated, when the last selected device is connected it will send silence right away.  
 
 
 ## How to build
