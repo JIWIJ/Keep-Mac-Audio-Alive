@@ -1,16 +1,17 @@
-import SwiftUI
 import CoreAudio
 import AVFoundation
 internal import Combine
 
 // MARK: - CoreAudio Engine
 class AudioEngine: ObservableObject {
+    
     @Published var isRunning = false
     @Published var devices: [AudioDevice] = []
     @Published var selectedDeviceUID: String? // We store UID for persistence
     
     private var ioProcID: AudioDeviceIOProcID?
-    private var currentDeviceID: AudioDeviceID?
+    //private
+    var currentDeviceID: AudioDeviceID?
     
     struct AudioDevice: Hashable, Identifiable {
         let id: AudioDeviceID
@@ -24,7 +25,7 @@ class AudioEngine: ObservableObject {
         
         refreshDevices()
         setupDeviceListener()
-    }
+    } 
     
     // MARK: - Device Management
     
@@ -190,50 +191,4 @@ func hardwareListenerCallback(objectID: AudioObjectID,
         engine.refreshDevices()
     }
     return noErr
-}
-
-// MARK: - SwiftUI Interface
-struct ContentView: View {
-    // We use EnvironmentObject so we share the same engine instance across window re-opens
-    @EnvironmentObject var engine: AudioEngine
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "waveform.circle.fill")
-                .foregroundColor(engine.isRunning ? .green : .secondary)
-                .font(.title2)
-            
-            Button(action: {engine.isRunning ? engine.stop() : engine.start() } ) {
-                Text (engine.isRunning ? "Stop" : "Start")
-                    .frame (width: 50)
-            }
-            
-            Picker("Device", selection: $engine.selectedDeviceUID) {
-                ForEach(engine.devices) { device in
-                    Text (device.name).tag(device.uid as String?)
-                }
-            }
-            .labelsHidden()
-            .frame (width: 170)
-            .disabled(engine.isRunning)
-        }
-        .padding(16)
-        .fixedSize()
-    }
-}
-
-// MARK: - App Entry Point
-@main
-struct AudioKeepAliveApp: App {
-    // Create the engine ONCE here. It lives as long as the app is running.
-    @StateObject var engine = AudioEngine()
-    
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environmentObject(engine) // Pass it down
-        }
-        // Removed .windowStyle(.hiddenTitleBar) so the title is visible
-        .windowResizability(.contentSize)
-    }
 }
