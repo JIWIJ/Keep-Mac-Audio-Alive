@@ -1,5 +1,3 @@
-// Copied with omissions from LosslessSwitcher 2.0 beta2.
-
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -37,4 +35,3 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 }
-

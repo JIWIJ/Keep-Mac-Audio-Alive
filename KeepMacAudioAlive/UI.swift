@@ -41,4 +41,3 @@ struct AudioKeepAliveApp: App {
         .menuBarExtraStyle(.window)
     }
 }
-
