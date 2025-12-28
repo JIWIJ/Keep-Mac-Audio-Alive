@@ -113,6 +113,7 @@ class AudioEngine: ObservableObject {
             
             return "Unknown"
         }
+    
     // MARK: - Hardware Listener
     
     private func setupDeviceListener() {
