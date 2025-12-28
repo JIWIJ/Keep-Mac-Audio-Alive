@@ -4,14 +4,12 @@ internal import Combine
 
 // MARK: - CoreAudio Engine
 class AudioEngine: ObservableObject {
-    
     @Published var isRunning = false
     @Published var devices: [AudioDevice] = []
     @Published var selectedDeviceUID: String? // We store UID for persistence
     
     private var ioProcID: AudioDeviceIOProcID?
-    //private
-    var currentDeviceID: AudioDeviceID?
+    private var currentDeviceID: AudioDeviceID?
     
     struct AudioDevice: Hashable, Identifiable {
         let id: AudioDeviceID
@@ -92,7 +90,6 @@ class AudioEngine: ObservableObject {
         } else if selectedDeviceUID == nil, let first = newDevices.first {
             selectedDeviceUID = first.uid
         }
-        
     }
     
     private func getDeviceStringProperty(id: AudioDeviceID, selector: AudioObjectPropertySelector) -> String {
