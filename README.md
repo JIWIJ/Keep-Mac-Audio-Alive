@@ -9,17 +9,21 @@ The app can be installed two ways: Downloading it or building it yourself.
 1. Download the app from [releases](https://github.com/openmac/KeepMacAudioAlive/releases).
 2. Open the app. Click Done on the first prompt. 
 3. Allow the app to run via Privacy & Security settings in macOS System Settings. 
-4. Start the app and select the desired device from the list under Device.  
+4. Start the app and select the desired device from the list right of Start.  
 
-   <img width="307" height="150" alt="Screenshot 2025-12-28 at 00 45 27" src="https://github.com/user-attachments/assets/e76f684e-fd69-4cde-adb1-99d527fee9ba" />
+   <img width="343" height="69" alt="Screenshot 2025-12-28 at 04 30 36" src="https://github.com/user-attachments/assets/f1a869cd-49ab-4047-80fc-3cfffadbbeec" />
 
-   The selected device is identified by having a checkmark to the left of its name.
+   <img width="343" height="112" alt="Screenshot 2025-12-28 at 04 30 53" src="https://github.com/user-attachments/assets/151025de-2ab4-4318-b9b0-a227fe486259" />
 
-   <img width="317" height="150" alt="Screenshot 2025-12-27 at 19 40 05" src="https://github.com/user-attachments/assets/75336816-cb2b-463e-b3de-4ef8ac3954e5" />   
+   The selected device is shown when the list is closed and is identified by having a checkmark to the left of its name on the list.
 
-5. Click Start to have it begin sending silence to the selected device. This disables the choice of device, which is enabled again by clicking Stop. 
+   <img width="343" height="70" alt="Screenshot 2025-12-28 at 04 29 55" src="https://github.com/user-attachments/assets/0e0a647b-8249-4139-a270-c4fd6e307c1c" />
 
-   <img width="317" height="150" alt="Screenshot 2025-12-27 at 19 40 21" src="https://github.com/user-attachments/assets/9525d22f-b81d-48a9-9e26-bc9ac3f94752" />
+   <img width="343" height="88" alt="Screenshot 2025-12-28 at 04 30 11" src="https://github.com/user-attachments/assets/68110791-87fc-4e7b-8671-7448ada5b8c5" />
+
+6. Click Start to have it begin sending silence to the selected device. This disables the choice of device, which is enabled again by clicking Stop.
+   
+   <img width="343" height="70" alt="Screenshot 2025-12-28 at 04 29 25" src="https://github.com/user-attachments/assets/bea5db0b-e8d1-445f-bb6b-170a0cf77dc9" />
 
    The selected device will be remembered on launch and the app will send silence right away the moment it is connected. It will always send silence on launch if the last selected device is available. If it is not, it will not send silence until another device is selected and Start is clicked or the last selected device is connected again.
    Note that when the logo is filled in, the app is sending silence and when it is empty, it is not. 
