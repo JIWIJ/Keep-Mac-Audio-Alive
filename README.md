@@ -21,8 +21,8 @@ The app can be installed two ways: Downloading it or building it yourself.
 
    <img width="317" height="150" alt="Screenshot 2025-12-27 at 19 40 21" src="https://github.com/user-attachments/assets/9525d22f-b81d-48a9-9e26-bc9ac3f94752" />
   
-  The selected device will be remembered on launch and the app will send silence right away the moment it is connected. It will always send silence on launch if the last selected device is available. If it is not, it will not send silence until another device is selected and Start is clicked or the last selected device is connected again.
-  Note that when the logo is filled in, the app is sending silence and when it is empty, it is not. 
+   The selected device will be remembered on launch and the app will send silence right away the moment it is connected. It will always send silence on launch if the last selected device is available. If it is not, it will not send silence until another device is selected and Start is clicked or the last selected device is connected again.
+   Note that when the logo is filled in, the app is sending silence and when it is empty, it is not. 
 
 6. To launch at login, add this app to Login Items under Settings > General > Login Items & Extensions > Open at Login. As stated, when the last selected device is connected it will send silence right away.
 
