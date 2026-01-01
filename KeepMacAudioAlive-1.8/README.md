@@ -40,4 +40,4 @@ If you want to build it yourself:
 6. Follow 4. through 6. for the download version.
 
 ## Credits
-This app and even its icon were originally made using Gemini 3 Pro, so all credits to them for that, and use it at your own risk. The menubar UI was made by me based on code from LosslessSwitcher 2.0 beta2.
+This app and even its icon were originally made using Gemini 3 Pro, so all credits to them for that, and use it at your own risk. The menubar UI was made by me/JIWIJ based on code from LosslessSwitcher 2.0 beta2.
